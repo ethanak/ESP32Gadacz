@@ -6,10 +6,13 @@
 namespace Gadacz {
     void begin(bool use_gain = false);
     void begin(int wclk_pin, int bclk_pin, int dout_pin);
+
+    void setUserDict(const char * const *units, const char * const *dict);
     void sayfmt(const char *format, ...);
     void saycst(const char *text);
     void say(const char *text);
     void say(String &s);
+    void waitAudio(uint32_t timeout=10000UL);
     void stop(void);
     void beep(int freq, int duration);
 

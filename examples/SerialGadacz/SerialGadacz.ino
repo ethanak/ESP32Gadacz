@@ -1,13 +1,34 @@
 #include <ESP32Gadacz.h>
 #include <ctype.h>
 
+// Odkomentuj linię poniżej jeśli chcesz włączyć dodatkowy słownik
+//#include "scifi.h"
+
+
+// odkomentuj dla wzmacniacza podłączonego do GPIO25
+//#define INTERNAL_DAC
+
+// piny DAC I2S
+#define WCLK_PIN 14
+#define BCLK_PIN 12
+#define DOUT_PIN 13
+
+
+
 char serbuf[256];
 int serpos;
 
 void setup()
 {
     Serial.begin(115200);
-    Gadacz::begin(14, 12, 13);
+#ifdef USER_UNITS
+    Gadacz::setUserDict(USER_UNITS, USER_LINES);
+#endif
+#ifdef INTERNAL_DAC
+    Gadacz::begin()
+#else
+    Gadacz::begin(WCLK_PIN, BCLK_PIN, DOUT_PIN);
+#endif
     Gadacz::setSpeed(4);
     Gadacz::saycst("Dzień dobry");
     serpos=0;

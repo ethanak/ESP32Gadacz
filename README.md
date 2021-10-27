@@ -28,8 +28,7 @@ może być poza zasięgiem finansowym potrzebującego.
 * Duża zajętość pamięci mikrokontrolera, co pozwala na uruchomienie
 na popularnych płytkach jedynie stosunkowo prostych aplikacji (tej wady
 nie mają płytki z min. 8 MB pamięci flash).
-* Brak w chwili obecnej możliwości tworzenia słowników specjalistycznych
-(jest to planowane w przyszłości w ramach rozwoju biblioteki microlena)
+* Prwdopodobnie jeszcze kilka się znajdzie...
 
 ### Przykłady zastosowania:
 
@@ -179,9 +178,17 @@ zwraca ```true```, jeśli trwa synteza mowy lub generowanie dźwięku.
 
 Przerywa trwającą syntezę mowy lub generowanie dźwięku.
 
-### Przykład
+* ```void Gadacz::waitAudio(uint32_t timeout=10000)```
 
-Załączony przykład pozwala na wprowadzenie polecenia z interfejsu Serial.
+czeka na zakończenie syntezy lub generowania dźwięku. Jeśli parametr
+```timeout``` jest większu od zera, wraca po upływie określonego czasu (w milisekundach).
+
+
+## Przykłady
+
+### SerialGadacz
+
+Program pozwala na wprowadzenie polecenia z interfejsu Serial.
 Jeśli polecenie rozpoczyna się od znaku ```\``` (backslash), interpretowane jest
 jako komenda nakazująca zmianę ustawień lub wykonanie określonej
 czynności. W przeciwnym wypadku tekst zosttanie wypowiedziany.
@@ -196,4 +203,59 @@ Komendy:
 
 W przykładzie użyto ustawień dla podłączenia konwertera I2S do pinów
 12, 13 i 14.
+
+Odkomentoeując linię:
+
+```C
+#include "scifi.h"
+```
+włączamy do programu słownik wygenerowany na podstawie pliku scifi.txt
+(patrz dokumentacja microleny w folderze userdic)
+
+### Kolor
+
+Program pokazuje, jak użyć Gadacza w aplikacji - w tym przypadku jest to czujnik koloru.
+Program jest przystosowany do modułu z diodą oświetlającą i mierzy kolor
+oświetlanej przez diodę powierzchni.
+
+**UWAGA!!!**
+
+Program służy jedynie do demonstracji, może jednak być uzżyty jako baza do napisania
+pełnej użytkowej aplikacji.
+
+Potrzebne elementy:
+- Dowolna płytka ESP32 z co najmniej sześcioma pinami wolnymi (pięcioma, jeśli
+płytka ma przycisk BOOT)
+- Moduł czujnika koloru TCS34725 (np. Adafruit)
+- Moduł I2S z głośnikiem lub moduł wzmacniacza z regulacją głośności i głośnikiem
+- Przycisk (jeśli nie wykorzystujemy przycisku BOOT)
+
+Dodatkowe biblioteki (do zainstalowania przez mabagera bibliotek):
+- Adafruit_TCS34725
+- Bounce2
+
+Przed skompilowaniem przykładu należy sprawdzić, czy numery pinów
+w programie są zgodne z naszymi połączeniami. Należy pamiętać,
+że w przypadku użycia wewnętrznego przetwornika należy odkomentować linię:
+```C
+#define INTERNAL_DAC
+```
+
+Ponieważ zachowanie czujnika zależy od wielu czynników (obudowa,
+umieszczenie diody podświetlającej itd.) należy dokonać wstępnej
+kalibracji. W tym celu:
+
+* Podkładamy pod czujnik białą kartkę i dokonujemy pomiaru. Odczytujemy
+z monitora Serial wartości MPX_R i MPX_B, wpisujemy je w odpowiednie
+miejsce w programie i kompilujemy jeszcze raz. W ten sposób wyrównujemy
+różnice poziomów RGB dla białej powierzchni.
+* Podkładamy pod czujnik czarną matową powierzchnię lub lepiej w ciemnym
+pomieszczeniu kierujemy czujnik w ciemny kąt i dokonujemy pomiaru.
+Odczytane wartości ZERO_R, ZERO_G i ZERO_B wpisujemy do programu
+i powtórnie kompilujemy. W ten sposób eliminujemy efekt crosstalku,
+gdy część światła diody pada na czujnik.
+* Ponownie podkładamy białą kartkę, dokonujemy pomiaru, odczytujemy wartość
+WHITE_C i wpisujemy w odpowiednie miejsce w programie.
+* Po ponownej kompilacji program jest gotowy do pracy.
+
 

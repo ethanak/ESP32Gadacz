@@ -228,6 +228,7 @@ static void speechThread(void *dummy)
     }
 }
 
+
 static void startGadaczTask()
 {
     SpeechRB = xRingbufferCreateNoSplit(32,8);
@@ -249,6 +250,12 @@ void Gadacz::begin(int wclk_pin, int bclk_pin, int dout_pin)
     _external_dac = true;
     startGadaczTask();
 }
+
+void Gadacz::setUserDict(const char * const *units, const char * const *dict)
+{
+    microlena_setUserDict(units, dict);
+}
+
 
 void Gadacz::say(const char *txt)
 {
@@ -313,6 +320,15 @@ void Gadacz::beep(int freq, int duration)
     scmd.u.s.freq = constrain(freq, -24, 24);
     scmd.u.s.duration = constrain(duration, 25, 1000);
     xRingbufferSend(SpeechRB, &scmd, sizeof(scmd), 0);
+}
+
+void Gadacz::waitAudio(uint32_t timeout)
+{
+    uint32_t ms=millis();
+    while (is_Speaking) {
+        if (timeout && millis() - ms > timeout) break;
+        delay(10);
+    }
 }
 
 void Gadacz::stop()
