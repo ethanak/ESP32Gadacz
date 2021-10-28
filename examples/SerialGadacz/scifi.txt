@@ -1,0 +1,10 @@
+#unit pps parsek na sekundę|parseki na sekundę|parseków na sekundę|parseka na sekundę
+
+warp łorp // tak lata Enterprise
+Alderaan(em|ie|u|owi) alderan%
+Alderaan alderan $3
+Galapagos $3
+oir-(em|u|owi|ze) o~'i~'er%
+oir $S // Organizacja Istot Rozumnych
+rodo rodo // wymowa skrótu jak normalnego słowa
+
