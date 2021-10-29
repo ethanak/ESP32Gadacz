@@ -25,7 +25,7 @@ void setup()
     Gadacz::setUserDict(USER_UNITS, USER_LINES);
 #endif
 #ifdef INTERNAL_DAC
-    Gadacz::begin()
+    Gadacz::begin();
 #else
     Gadacz::begin(WCLK_PIN, BCLK_PIN, DOUT_PIN);
 #endif

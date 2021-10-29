@@ -246,7 +246,7 @@ tcs34725 rgb_sensor(LED_PIN);
 void setup(void) {
     Serial.begin(115200);
 #ifdef INTERNAL_DAC
-    Gadacz::begin()
+    Gadacz::begin();
 #else
     Gadacz::begin(WCLK_PIN, BCLK_PIN, DOUT_PIN);
 #endif
