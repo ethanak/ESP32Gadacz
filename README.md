@@ -117,7 +117,7 @@ jednocześnie powoduje wzrost zniekształceń. Dopuszczalne wartości od 0 do 10
 
 Ustawia tryb uproszczonego czytania wartości ułamkowych. Przykładowo
 "2.50 cm" w trybie normalnym będzie odczytane jako "dwa przecinek pięćdziesiąt centymetra",
-w trybie uproszczonym "dwa i oł centymetra".
+w trybie uproszczonym "dwa i pół centymetra".
 
 * ```bool Gadacz::setDeciPoint(const char *dp)```
 * ```bool Gadacz::setDeciPoint(String &s)```
@@ -167,7 +167,6 @@ z precyzją ćwierćtonu, ```duration``` określa czas trwania w milisekundach.
 Dopuszczalne wartości dla ```freq``` to od -24 do 24, dla ```duration```
 od 25 do 1000. Wywołanie funkcji w czasie trwania syntezy mowy
 lub generowania dżwięku przerywa natychmiast trwającą syntezę/generowanie.
-
 
 
 * ```bool Gadacz::isSpeaking()```

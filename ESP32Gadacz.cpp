@@ -38,11 +38,16 @@ static uint8_t _contrast=4;
 static char _decipoint[32]="przecinek";
 static volatile bool is_Speaking=false;
 
+
+static void (*spkCallback)(const char *);
+
 static uint8_t _wclk_pin;
 static uint8_t _bclk_pin;
 static uint8_t _dout_pin;
 static bool _external_dac;
 static bool _use_gain;
+
+static char _specChar;
 
 struct SpeakerCmd {
     uint8_t command;
@@ -164,6 +169,15 @@ bool startBeep(int nfreq, int duration)
 
 static bool startTalking()
 {
+    const char *msg = spkMessage;
+    int p=_pitch;
+    if (_specChar && *msg == _specChar) {
+        msg++;
+        if (p < 20) p += 4;
+        else p -=4;
+    }
+    if (!*msg) return is_Speaking = false;
+    
     milena=new AudioGeneratorMilena();
     if (!milena) return is_Speaking = false;
     initAudioOutput();
@@ -171,8 +185,10 @@ static bool startTalking()
         delete milena;
         return is_Speaking = false;
     }
+        
+    milena->setPitch(pitches[p]);
+    
     milena->setSpeed(timeratia[_speed]);
-    milena->setPitch(pitches[_pitch]);
     milena->setContrast(_contrast);
     milena->setSimpleDeciPoint(_spdecipoint);
     milena->setDeciPoint(_decipoint);
@@ -181,7 +197,7 @@ static bool startTalking()
         milena->setVolume(1.4);
         milena->setInternalDAC(1);
     }
-    if (!milena->begin(spkMessage, player)) {
+    if (!milena->begin(msg, player)) {
         delete milena;
         delete player;
         milena = NULL;
@@ -263,6 +279,7 @@ void Gadacz::say(const char *txt)
     scmd.command = SCMD_SAY;
     scmd.u.text = strdup(txt);
     is_Speaking=true;
+    if (spkCallback) spkCallback(scmd.u.text);
     xRingbufferSend(SpeechRB, &scmd, sizeof(scmd), 0);
 }
 
@@ -272,6 +289,7 @@ void Gadacz::say(String &s)
     scmd.command = SCMD_SAY;
     scmd.u.text = strdup(s.c_str());
     is_Speaking=true;
+    if (spkCallback) spkCallback(scmd.u.text);
     xRingbufferSend(SpeechRB, &scmd, sizeof(scmd), 0);
 }
 
@@ -281,6 +299,7 @@ void Gadacz::saycst(const char *txt)
     scmd.command = SCMD_SAYCST;
     scmd.u.text = txt;
     is_Speaking=true;
+    if (spkCallback) spkCallback(scmd.u.text);
     xRingbufferSend(SpeechRB, &scmd, sizeof(scmd), 0);
 }
 
@@ -310,6 +329,7 @@ void Gadacz::sayfmt(const char *format, ...)
     scmd.u.text=mkMessage(format, ap);
     va_end(ap);
     is_Speaking=true;
+    if (spkCallback) spkCallback(scmd.u.text);
     xRingbufferSend(SpeechRB, &scmd, sizeof(scmd), 0);
 }
 
@@ -319,6 +339,7 @@ void Gadacz::beep(int freq, int duration)
     scmd.command = SCMD_BEEP;
     scmd.u.s.freq = constrain(freq, -24, 24);
     scmd.u.s.duration = constrain(duration, 25, 1000);
+    if (spkCallback) spkCallback(NULL);
     xRingbufferSend(SpeechRB, &scmd, sizeof(scmd), 0);
 }
 
@@ -335,6 +356,7 @@ void Gadacz::stop()
 {
     struct SpeakerCmd scmd;
     scmd.command = SCMD_STOP;
+    if (spkCallback) spkCallback(NULL);
     xRingbufferSend(SpeechRB, &scmd, sizeof(scmd), 0);
 }
 
@@ -379,6 +401,49 @@ uint8_t Gadacz::getPitch()
     return _pitch;
 }
 
+bool Gadacz::changeSpeed(int delta, bool nobeep)
+{
+    if (!delta) return false;
+    if (delta > 0 && _speed == 24) return false;
+    if (delta < 0 && _speed == 0) return false;
+    _speed = constrain((int)_speed + delta, 0,24);
+    if (!nobeep) beep(2 * ((int)_speed - 12), 50);
+    return true;
+}
+
+bool Gadacz::changePitch(int delta, bool nobeep)
+{
+    if (!delta) return false;
+    if (delta > 0 && _pitch == 24) return false;
+    if (delta < 0 && _pitch == 0) return false;
+    _pitch = constrain((int)_pitch + delta, 0,24);
+    if (!nobeep) beep(2 * ((int)_pitch - 12), 50);
+    return true;
+}
+
+bool Gadacz::changeVolume(int delta, bool nobeep)
+{
+    if (!_external_dac && !_use_gain) {
+        return false;
+    }
+    if (!delta) return false;
+    if (delta > 0 && _volume == 24) return false;
+    if (delta < 0 && _volume == 0) return false;
+    _volume = constrain((int)_volume + delta, 0,24);
+    if (!nobeep) beep(0, 50);
+    return true;
+}
+
+bool Gadacz::changeContrast(int delta, bool nobeep)
+{
+    if (!delta) return false;
+    if (delta > 0 && _contrast == 100) return false;
+    if (delta < 0 && _contrast == 0) return false;
+    _contrast = constrain((int)_contrast + delta, 0,100);
+    if (!nobeep) beep((24 * (int)_contrast - 50)/50, 50);
+    return true;
+}
+
 void Gadacz::setSimpleDeciPoint(bool mode)
 {
     _spdecipoint = mode;
@@ -387,6 +452,11 @@ void Gadacz::setSimpleDeciPoint(bool mode)
 bool Gadacz::getSimpleDeciPoint()
 {
     return _spdecipoint;
+}
+
+bool Gadacz::changeSimpleDeciPoint(void)
+{
+    return _spdecipoint = !_spdecipoint;
 }
 
 void Gadacz::setAltColon(bool mode)
@@ -427,6 +497,17 @@ bool Gadacz::isSpeaking()
 {
     return is_Speaking;
 }
+
+void Gadacz::setSpeakCallback(void (*fun)(const char *))
+{
+    spkCallback = fun;
+}
+
+void Gadacz::setSpecialChar(char znak)
+{
+    _specChar = znak;
+}
+
 
 /* beeper */
 bool AudioGeneratorBeep::begin(int freq, int duration, AudioOutputI2S *out)

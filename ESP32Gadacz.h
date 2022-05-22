@@ -16,6 +16,9 @@ namespace Gadacz {
     void stop(void);
     void beep(int freq, int duration);
 
+    void setSpecialChar(char znak);
+    void setSpeakCallback(void (*fun)(const char *));
+
     void setSpeed(uint8_t speed);
     void setVolume(uint8_t volume);
     void setPitch(uint8_t pitch);
@@ -25,8 +28,15 @@ namespace Gadacz {
     uint8_t getPitch();
     uint8_t getContrast();
 
+    bool changeSpeed(int delta, bool nobeep=false);
+    bool changePitch(int delta, bool nobeep=false);
+    bool changeVolume(int delta, bool nobeep=false);
+    bool changeContrast(int delta, bool nobeep=false);
+    
+
     void setSimpleDeciPoint(bool mode);
     bool getSimpleDeciPoint();
+    bool changeSimpleDeciPoint(void);
     bool setDeciPoint(const char *dp);
     bool setDeciPoint(String &s);
     void getDeciPoint(char *buf);
