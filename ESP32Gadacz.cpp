@@ -88,12 +88,12 @@ static bool spkMsgAllocated;
 static void initAudioOutput(void)
 {
     if (_external_dac) {
-        player = new AudioOutputI2S();
+        player = new AudioOutputI2S(0,AudioOutputI2S::EXTERNAL_I2S,8,AudioOutputI2S::APLL_ENABLE);
         player->SetPinout(_bclk_pin, _wclk_pin, _dout_pin);
         player->SetGain(vols[_volume]);
     }
     else {
-        player = new AudioOutputI2S(0,1);
+        player = new AudioOutputI2S(0,AudioOutputI2S::INTERNAL_DAC,8,AudioOutputI2S::APLL_ENABLE);
         if (_use_gain) {
             player->SetGain(vols[_volume]);
         }
