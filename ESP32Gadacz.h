@@ -15,6 +15,7 @@ namespace Gadacz {
     void waitAudio(uint32_t timeout=10000UL);
     void stop(void);
     void beep(int freq, int duration);
+    void play(const int16_t *waveform, uint16_t samplefreq, int nsamples);
 
     void setSpecialChar(char znak);
     void setSpeakCallback(void (*fun)(const char *));

@@ -4,6 +4,19 @@
 #include <freertos/ringbuf.h>
 #include <stdarg.h>
 
+class AudioGeneratorMem: public AudioGenerator
+{
+    public:
+    bool begin(const int16_t *waveform, uint16_t samplefreq, int nsamples, AudioOutputI2S *out);
+    bool stop();
+    bool isRunning();
+    bool loop();
+
+    private:
+    const int16_t *wave;
+    int nsamp;
+};
+
 class AudioGeneratorBeep : public AudioGenerator
 {
     public:
@@ -24,7 +37,7 @@ class AudioGeneratorBeep : public AudioGenerator
 static AudioGeneratorMilena *milena = NULL;
 static AudioOutputI2S *player = NULL;
 static AudioGeneratorBeep *beeper = NULL;
-
+static AudioGeneratorMem *memplay = NULL;
 static RingbufHandle_t SpeechRB;
 static TaskHandle_t speechHandle;
 
@@ -57,6 +70,11 @@ struct SpeakerCmd {
             int16_t freq;
             uint16_t duration;
         } s;
+        struct {
+            const int16_t *waveform;
+            uint16_t sfreq;
+            int nsamp;
+        } p;
     } u;
 };
 
@@ -64,7 +82,8 @@ enum {
     SCMD_STOP = 0,
     SCMD_SAY,
     SCMD_BEEP,
-    SCMD_SAYCST
+    SCMD_SAYCST,
+    SCMD_PLAY
 };
 
 static float vols[] = {0.031, 0.047, 0.062, 0.078, 0.094, 0.109, 0.125,
@@ -105,6 +124,11 @@ static void initAudioOutput(void)
 
 static void stopAll(bool keep_speaking=false)
 {
+    if (memplay) {
+        memplay->stop();
+        delete memplay;
+        memplay=NULL;
+    }
     if (beeper) {
         beeper->stop();
         delete beeper;
@@ -130,6 +154,12 @@ static void stopAll(bool keep_speaking=false)
 static void speakerloop()
 {
     
+    if (memplay && memplay->isRunning()) {
+        if (!memplay->loop()) {
+            stopAll();
+        }
+        else delay(1);
+    }
     if (beeper && beeper->isRunning()) {
         if (!beeper->loop()) {
             stopAll();
@@ -166,6 +196,22 @@ bool startBeep(int nfreq, int duration)
     }
     return is_Speaking = true;
 }
+
+static bool startMemplay(const int16_t *wave,uint16_t sfreq, int nsamples)
+{
+    stopAll(false);
+    initAudioOutput();
+    memplay=new AudioGeneratorMem();
+    if (!memplay->begin(wave, sfreq, nsamples, player)) {
+        delete memplay;
+        delete player;
+        memplay = NULL;
+        player = NULL;
+        return false;
+    }
+    return is_Speaking = true;
+}
+
 
 static bool startTalking()
 {
@@ -219,6 +265,11 @@ static void speechThread(void *dummy)
         switch (rc->command) {
             case SCMD_STOP:
             stopAll(false);
+            break;
+
+            case SCMD_PLAY:
+            stopAll(false);
+            startMemplay(rc->u.p.waveform, rc->u.p.sfreq, rc->u.p.nsamp);
             break;
 
             case SCMD_BEEP:
@@ -332,6 +383,18 @@ void Gadacz::sayfmt(const char *format, ...)
     if (spkCallback) spkCallback(scmd.u.text);
     xRingbufferSend(SpeechRB, &scmd, sizeof(scmd), 0);
 }
+
+void Gadacz::play(const int16_t *waveform, uint16_t samplefreq, int nsamples)
+{
+    struct SpeakerCmd scmd;
+    scmd.command = SCMD_PLAY;
+    scmd.u.p.waveform=waveform;
+    scmd.u.p.sfreq = samplefreq;
+    scmd.u.p.nsamp = nsamples;
+    if (spkCallback) spkCallback(NULL);
+    xRingbufferSend(SpeechRB, &scmd, sizeof(scmd), 0);    
+}
+
 
 void Gadacz::beep(int freq, int duration)
 {
@@ -508,6 +571,54 @@ void Gadacz::setSpecialChar(char znak)
     _specChar = znak;
 }
 
+/* memplay */
+
+bool AudioGeneratorMem::begin(const int16_t *waveform,
+    uint16_t samplefreq, int nsamples, AudioOutputI2S *out)
+{
+    wave = waveform;
+    nsamp = nsamples;
+    running=true;
+    output=out;
+    out->SetRate(samplefreq);
+    out->SetBitsPerSample(16);
+    out->SetChannels(1);
+    return out->begin();
+    
+}
+
+bool AudioGeneratorMem::stop()
+{
+    if (!running)
+        return true;
+    running = false;
+    output->stop();
+    return true;
+}
+
+bool AudioGeneratorMem::isRunning()
+{
+    return running;
+}
+
+bool AudioGeneratorMem::loop(void)
+{
+    if (nsamp<=0) {
+        stop();
+        return running;
+    }
+
+    while(running) {
+        lastSample[AudioOutput::LEFTCHANNEL] =
+        lastSample[AudioOutput::RIGHTCHANNEL] = *wave;
+        if (!output->ConsumeSample(lastSample))
+            break;
+        wave++;
+        nsamp--;
+        if (nsamp <= 0) break;
+    }
+    return running;
+}
 
 /* beeper */
 bool AudioGeneratorBeep::begin(int freq, int duration, AudioOutputI2S *out)
