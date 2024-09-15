@@ -2,7 +2,7 @@
 
 W folderze, w którym zainstalowano bibliotekę znajduje się
 folder ```data```, przeznaczony do instalacji głosu. Do tego folderu
-należy skopiować folder ```pl_alaw_app```, zawierający polski głos
+należy skopiować folder ```pl_ulaw_app```, zawierający polski głos
 skompresowany algoryemem A-law i przystosowany do wkompilowana
 w aplikację.
 

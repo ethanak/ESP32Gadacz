@@ -7,8 +7,8 @@
  * for us1 full quality it will be
  * #define _data_header(x) __data_header(data/us1_full/espola##x)
  */
-//#define _data_header(x) __data_header(data/pl1_full/espola##x)
-#define _data_header(x) __data_header(data/pl1_alaw_app/espola##x)
+//#define _data_header(x) __data_header(data/pl1_alaw_app/espola##x)
+#define _data_header(x) __data_header(data/pl1_ulaw_app/espola##x)
 #define data_header(x) _data_header(x)
 
 #endif
